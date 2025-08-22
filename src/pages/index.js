@@ -1,6 +1,6 @@
 import Head from "next/head";
 import { useEffect, useState } from "react";
-import { Box, Container, Button, Card, CardContent } from "@mui/material";
+import { Box, Container, Button, Card, CardContent, Tooltip } from "@mui/material";
 import { Grid } from "@mui/system";
 import { CippInfoBar } from "../components/CippCards/CippInfoBar";
 import { CippChartCard } from "../components/CippCards/CippChartCard";
@@ -14,10 +14,13 @@ import { CippUniversalSearch } from "../components/CippCards/CippUniversalSearch
 import { ApiGetCall } from "../api/ApiCall.jsx";
 import { CippCopyToClipBoard } from "../components/CippComponents/CippCopyToClipboard.jsx";
 import { ExecutiveReportButton } from "../components/ExecutiveReportButton.js";
+import { CippStandardsDialog } from "../components/CippCards/CippStandardsDialog.jsx";
 
 const Page = () => {
-  const { currentTenant } = useSettings();
+  const settings = useSettings();
+  const { currentTenant } = settings;
   const [domainVisible, setDomainVisible] = useState(false);
+  const [standardsDialogOpen, setStandardsDialogOpen] = useState(false);
 
   const organization = ApiGetCall({
     url: "/api/ListOrg",
@@ -172,12 +175,48 @@ const Page = () => {
     return `${sizeInMB}MB`;
   };
 
+  // Function to filter portals based on user preferences
+  const getFilteredPortals = () => {
+    const defaultLinks = {
+      M365_Portal: true,
+      Exchange_Portal: true,
+      Entra_Portal: true,
+      Teams_Portal: true,
+      Azure_Portal: true,
+      Intune_Portal: true,
+      SharePoint_Admin: true,
+      Security_Portal: true,
+      Compliance_Portal: true,
+      Power_Platform_Portal: true,
+      Power_BI_Portal: true,
+    };
+
+    let portalLinks;
+    if (settings.UserSpecificSettings?.portalLinks) {
+      portalLinks = { ...defaultLinks, ...settings.UserSpecificSettings.portalLinks };
+    } else if (settings.portalLinks) {
+      portalLinks = { ...defaultLinks, ...settings.portalLinks };
+    } else {
+      portalLinks = defaultLinks;
+    }
+
+    // Filter the portals based on user settings
+    return Portals.filter(portal => {
+      const settingKey = portal.name;
+      return settingKey ? portalLinks[settingKey] === true : true;
+    });
+  };
+
   useEffect(() => {
     if (currentTenantInfo.isSuccess) {
       const tenantLookup = currentTenantInfo.data?.find(
         (tenant) => tenant.defaultDomainName === currentTenant
       );
-      const menuItems = Portals.map((portal) => ({
+      
+      // Get filtered portals based on user preferences
+      const filteredPortals = getFilteredPortals();
+      
+      const menuItems = filteredPortals.map((portal) => ({
         label: portal.label,
         target: "_blank",
         link: portal.url.replace(portal.variable, tenantLookup?.[portal.variable]),
@@ -185,7 +224,7 @@ const Page = () => {
       }));
       setPortalMenuItems(menuItems);
     }
-  }, [currentTenantInfo.isSuccess, currentTenant]);
+  }, [currentTenantInfo.isSuccess, currentTenant, settings.portalLinks, settings.UserSpecificSettings]);
 
   return (
     <>
@@ -201,7 +240,7 @@ const Page = () => {
                   <BulkActionsMenu
                     buttonName="Portals"
                     actions={PortalMenuItems}
-                    disabled={!currentTenantInfo.isSuccess}
+                    disabled={!currentTenantInfo.isSuccess || PortalMenuItems.length === 0}
                   />
                   <ExecutiveReportButton
                     tenantName={organization.data?.displayName}
@@ -254,13 +293,16 @@ const Page = () => {
             </Grid>
 
             <Grid size={{ md: 4, xs: 12 }}>
-              <CippChartCard
-                title="Standards Set"
-                isFetching={standards.isFetching}
-                chartType="bar"
-                chartSeries={[remediateCount, alertCount, reportCount]}
-                labels={["Remediation", "Alert", "Report"]}
-              />
+              <Tooltip title="Click to view standards">
+                <CippChartCard
+                  title="Standards Set"
+                  isFetching={standards.isFetching}
+                  chartType="bar"
+                  chartSeries={[remediateCount, alertCount, reportCount]}
+                  labels={["Remediation", "Alert", "Report"]}
+                  onClick={() => setStandardsDialogOpen(true)}
+                />
+              </Tooltip>
             </Grid>
 
             <Grid size={{ md: 4, xs: 12 }}>
@@ -357,6 +399,13 @@ const Page = () => {
           </Grid>
         </Container>
       </Box>
+      
+      <CippStandardsDialog
+        open={standardsDialogOpen}
+        onClose={() => setStandardsDialogOpen(false)}
+        standardsData={standards.data}
+        currentTenant={currentTenant}
+      />
     </>
   );
 };
