@@ -22,16 +22,16 @@ import {
 import { getCippLicenseTranslation } from "../../utils/get-cipp-license-translation";
 import { useSettings } from "/src/hooks/use-settings.js";
 import { usePermissions } from "../../hooks/use-permissions";
-import { Stack, Grid, Tooltip, Box } from "@mui/material";
+import { Tooltip, Box } from "@mui/material";
 import CippFormComponent from "./CippFormComponent";
-import { useForm, useWatch } from "react-hook-form";
+import { useWatch } from "react-hook-form";
 
 // Separate component for Out of Office form to avoid hook issues
 const OutOfOfficeForm = ({ formControl }) => {
   // Watch the Auto Reply State value
   const autoReplyState = useWatch({
     control: formControl.control,
-    name: "ooo.AutoReplyState",
+    name: "AutoReplyState",
   });
 
   // Calculate if date fields should be disabled
@@ -321,7 +321,10 @@ export const useCippUserActions = () => {
           validators: { required: "Please select a group" },
           api: {
             url: "/api/ListGroups",
-            labelField: "displayName",
+            labelField: (option) =>
+              option?.calculatedGroupType
+                ? `${option.displayName} (${option.calculatedGroupType})`
+                : option?.displayName ?? "",
             valueField: "id",
             addedField: {
               groupType: "calculatedGroupType",
