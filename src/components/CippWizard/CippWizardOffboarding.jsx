@@ -111,6 +111,12 @@ export const CippWizardOffboarding = (props) => {
                 formControl={formControl}
               />
               <CippFormComponent
+                name="removeCalendarPermissions"
+                label="Remove user's calendar permissions"
+                type="switch"
+                formControl={formControl}
+              />
+              <CippFormComponent
                 name="RemoveRules"
                 label="Remove all Rules"
                 type="switch"
@@ -380,6 +386,17 @@ export const CippWizardOffboarding = (props) => {
                   name="postExecution.psa"
                   label="PSA"
                   type="switch"
+                  formControl={formControl}
+                />
+              </Grid>
+
+              <Grid size={{ sm: 12, xs: 12 }}>
+                <CippFormComponent
+                  type="textField"
+                  fullWidth
+                  label="Reference"
+                  name="reference"
+                  placeholder="Enter a reference that will be added to the notification title and scheduled task"
                   formControl={formControl}
                 />
               </Grid>
